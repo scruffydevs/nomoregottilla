@@ -31,7 +31,7 @@ export function stopSpeaking() {
  */
 let seq = 0; // latest call wins; older in-flight calls go quiet instead of falling back
 
-export async function speak(text: string, voice: Voice = "ajji"): Promise<"sarvam" | "fallback"> {
+export async function speak(text: string, voice: Voice = "ajji"): Promise<"ended" | "interrupted" | "fallback"> {
   const mine = ++seq;
   try {
     window.speechSynthesis?.cancel(); // never let the robotic browser voice linger
@@ -49,20 +49,20 @@ export async function speak(text: string, voice: Voice = "ajji"): Promise<"sarva
       url = URL.createObjectURL(await res.blob());
       cache.set(key, url);
     }
-    if (mine !== seq) return "sarvam"; // a newer line started while we were fetching
+    if (mine !== seq) return "interrupted"; // a newer line started while we were fetching
     current?.pause();
     const audio = new Audio(url);
     current = audio;
     await audio.play();
-    await new Promise<void>((resolve) => {
-      audio.onended = () => resolve();
-      audio.onpause = () => resolve();
+    // 'pause' also fires just before 'ended' on natural completion, so check audio.ended.
+    return await new Promise<"ended" | "interrupted">((resolve) => {
+      audio.onended = () => resolve("ended");
+      audio.onpause = () => resolve(audio.ended ? "ended" : "interrupted");
     });
-    return "sarvam";
   } catch (err) {
     // Only use the browser voice when Sarvam really failed, not when we were interrupted.
     const interrupted = mine !== seq || (err instanceof DOMException && err.name === "AbortError");
-    if (interrupted) return "sarvam";
+    if (interrupted) return "interrupted";
     browserFallback(text, voice);
     return "fallback";
   }

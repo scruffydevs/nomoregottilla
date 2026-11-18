@@ -34,15 +34,26 @@ export default function ScenePlayer({
   // Auto-play each beat as it appears; `talking` drives the speaker's pulsing avatar.
   useEffect(() => {
     let stale = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (step < scene.beats.length) {
+      const beat = scene.beats[step];
       setTalking(true);
-      speakBeat(scene.beats[step]).then(() => !stale && setTalking(false));
+      speakBeat(beat).then((result) => {
+        if (stale) return;
+        setTalking(false);
+        // The narrator flows straight on to the next beat once she finishes speaking.
+        // Dialogue beats wait for the learner, so there's time to study the words.
+        if (beat.kind === "narration" && result === "ended" && step + 1 < scene.beats.length) {
+          timer = setTimeout(() => setStep(step + 1), 700);
+        }
+      });
     } else {
       setTalking(false);
     }
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
     return () => {
       stale = true;
+      clearTimeout(timer);
     };
   }, [index, step, scene.beats]);
 
