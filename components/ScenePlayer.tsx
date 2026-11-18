@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { SCENES, WORD_BY_ID, type Beat } from "@/data/starter";
 import { speak, stopSpeaking } from "@/lib/voice";
 import { InlineWord } from "./InlineWord";
+import { Avatar } from "./Avatar";
 
 function speakBeat(b: Beat) {
   return b.kind === "narration" ? speak(b.text, "narrator") : speak(b.say, b.voice);
@@ -24,15 +25,25 @@ export default function ScenePlayer({
 }) {
   const scene = SCENES[index];
   const [step, setStep] = useState(0); // step === beats.length means the end card
+  const [talking, setTalking] = useState(false);
   const end = step >= scene.beats.length;
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => setStep(0), [index]);
 
-  // Auto-play each beat as it appears.
+  // Auto-play each beat as it appears; `talking` drives the speaker's pulsing avatar.
   useEffect(() => {
-    if (step < scene.beats.length) speakBeat(scene.beats[step]);
+    let stale = false;
+    if (step < scene.beats.length) {
+      setTalking(true);
+      speakBeat(scene.beats[step]).then(() => !stale && setTalking(false));
+    } else {
+      setTalking(false);
+    }
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    return () => {
+      stale = true;
+    };
   }, [index, step, scene.beats]);
 
   // Stop audio on close; Esc closes.
@@ -50,7 +61,7 @@ export default function ScenePlayer({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-gradient-to-b from-ink via-navy to-ink">
-      <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-4 pb-10 pt-4 sm:px-6">
+      <div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-6 pb-10 pt-4 lg:px-10">
         {/* Top bar */}
         <div className="flex items-center justify-between gap-3">
           <button onClick={onClose} className="rounded-full border-2 border-gold/50 px-4 py-1.5 text-sm font-black text-gold hover:bg-gold/10">
@@ -83,9 +94,15 @@ export default function ScenePlayer({
                 b.kind === "narration" ? "border-2 border-navy3 bg-navy2/60" : "border-2 border-gold bg-gold/10"
               }`}>
                 <div className="flex items-center justify-between gap-2">
-                  <span className={`rounded-full px-3 py-0.5 text-sm font-black ${b.kind === "narration" ? "bg-navy3 text-gold" : "bg-gold text-ink"}`}>
-                    {b.kind === "narration" ? "🎙 Narrator" : `🗣 ${b.speaker}`}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Avatar
+                      emoji={b.kind === "narration" ? "🎙️" : b.voice === "ajji" ? "👵" : "🧒"}
+                      active={current && talking}
+                    />
+                    <span className={`rounded-full px-3 py-0.5 text-sm font-black ${b.kind === "narration" ? "bg-navy3 text-gold" : "bg-gold text-ink"}`}>
+                      {b.kind === "narration" ? "Narrator" : b.speaker}
+                    </span>
+                  </div>
                   {current && (
                     <button onClick={() => speakBeat(b)} className="text-sm font-black text-gold hover:underline">
                       🔁 Hear again

@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { LogoMark, Wordmark } from "./Logo";
 import { InlineWord } from "./InlineWord";
+import { Avatar } from "./Avatar";
 import ScenePlayer from "./ScenePlayer";
 import { speak, startRecording, stopSpeaking, transcribe } from "@/lib/voice";
 import { DIALOGUE, LATER_CHAPTERS, SCENES, WORDS, WORD_BY_ID, type Word } from "@/data/starter";
 
 const KEY = "nomoregottilla:gottu";
+
+type Tab = "starter" | "path" | "soon";
 
 export default function Dashboard() {
   const [known, setKnown] = useState<string[]>([]);
@@ -28,6 +31,7 @@ export default function Dashboard() {
     } catch {}
   }, [known, ready]);
 
+  const [tab, setTab] = useState<Tab>("starter");
   const [openScene, setOpenScene] = useState<number | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
   const cancelled = useRef(false);
@@ -56,28 +60,69 @@ export default function Dashboard() {
   const gottu = known.length;
   const left = WORDS.length - gottu;
   const pct = Math.round((gottu / WORDS.length) * 100);
+  const next = WORDS.find((w) => !known.includes(w.id));
+  const scenesDone = SCENES.filter((s) => s.words.every((id) => known.includes(id))).length;
+  const tabs: { id: Tab; label: string; badge?: string }[] = [
+    { id: "starter", label: "📖 Starter", badge: `${gottu}/${WORDS.length}` },
+    { id: "path", label: "🗺️ Story path", badge: `${scenesDone}/${SCENES.length}` },
+    { id: "soon", label: "🔒 Coming up" },
+  ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-20 sm:px-6">
+    <div className="w-full px-6 pb-20 lg:px-10 2xl:px-16">
       {/* Header */}
-      <header className="flex items-center justify-between py-6">
-        <div className="flex items-center gap-3">
-          <LogoMark size={52} />
+      <header className="sticky top-0 z-30 -mx-6 mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 border-b-2 border-gold/20 bg-navy/90 px-6 py-3 backdrop-blur lg:-mx-10 lg:px-10 2xl:-mx-16 2xl:px-16">
+        <div className="flex shrink-0 items-center gap-3">
+          <LogoMark size={48} />
           <div className="leading-none">
             <Wordmark className="text-2xl sm:text-3xl" />
-            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-gold/70">
+            <p className="mt-1 hidden text-xs font-bold uppercase tracking-widest text-gold/70 sm:block">
               Learn Kannada through Ajji&apos;s stories
             </p>
           </div>
         </div>
-        <div className="hidden items-center gap-2 rounded-full border-2 border-gold/40 bg-ink/40 px-4 py-2 text-sm font-extrabold text-gold sm:flex">
+
+        <div
+          role="tablist"
+          aria-label="Sections"
+          className="order-last flex w-full gap-2 overflow-x-auto rounded-2xl border-2 border-navy3 bg-ink/40 p-1.5 lg:order-none lg:w-auto lg:flex-1"
+        >
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => {
+                setTab(t.id);
+                document.getElementById("starter")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition sm:flex-1 sm:justify-center sm:text-base ${
+                tab === t.id ? "bg-gold text-ink shadow-[0_3px_0_#b38f00]" : "text-gold hover:bg-gold/10"
+              }`}
+            >
+              {t.label}
+              {t.badge && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-black ${
+                    tab === t.id ? "bg-ink/20 text-ink" : "bg-navy3 text-cream"
+                  }`}
+                >
+                  {t.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="ml-auto hidden items-center gap-2 rounded-full border-2 border-gold/40 bg-ink/40 px-4 py-2 text-sm font-extrabold text-gold sm:flex">
           🔥 Day 1
         </div>
       </header>
 
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl border-2 border-gold/30 bg-gradient-to-br from-navy2 to-ink p-6 sm:p-10">
-        <div className="absolute -right-6 -top-6 select-none text-[9rem] opacity-20 sm:text-[13rem]">👵</div>
+        <div className="grid items-center gap-8 lg:grid-cols-[1.5fr_1fr]">
+        <div>
         <p className="font-kn text-lg font-black text-gold/80">ನಮಸ್ಕಾರ!</p>
         <h1 className="mt-1 max-w-2xl text-4xl font-black leading-tight text-gold sm:text-6xl">
           Turn every <span className="line-through decoration-flagred decoration-4">gottilla</span> into gottu.
@@ -87,10 +132,38 @@ export default function Dashboard() {
         </p>
         <a
           href="#starter"
+          onClick={() => setTab("starter")}
           className="mt-6 inline-flex items-center gap-2 rounded-full bg-gold px-7 py-3 text-lg font-black text-ink shadow-[0_6px_0_#b38f00] transition active:translate-y-1 active:shadow-[0_2px_0_#b38f00]"
         >
           Start with Ajji →
         </a>
+        </div>
+
+        {next ? (
+          <aside className="rounded-3xl border-2 border-gold/40 bg-ink/50 p-6 text-center">
+            <p className="text-xs font-black uppercase tracking-widest text-gold/70">Next word to learn</p>
+            <p className="font-kn mt-3 text-6xl font-black text-gold xl:text-7xl">{next.kn}</p>
+            <p className="mt-1 text-xl font-extrabold italic text-cream">{next.rom}</p>
+            <p className="mt-1 text-lg font-bold text-cream/70">{next.emoji} {next.en}</p>
+            <div className="mt-5 flex justify-center gap-3">
+              <button
+                onClick={() => speak(next.kn)}
+                className="rounded-full border-2 border-gold/50 px-4 py-2 text-sm font-black text-gold hover:bg-gold/10"
+              >
+                🔊 Hear it
+              </button>
+              <button onClick={() => toggle(next.id)} className="rounded-full bg-gold px-4 py-2 text-sm font-black text-ink">
+                Gottu! ✓
+              </button>
+            </div>
+          </aside>
+        ) : (
+          <aside className="rounded-3xl border-2 border-gold bg-gold/15 p-6 text-center">
+            <p className="text-3xl font-black text-gold">All 12 words gottu! 🎉</p>
+            <p className="mt-2 font-semibold text-cream/80">Ajji is very proud. Replay a scene to hear them all again.</p>
+          </aside>
+        )}
+        </div>
       </section>
 
       {/* Stats */}
@@ -102,8 +175,10 @@ export default function Dashboard() {
       </section>
 
       {/* Starter */}
-      <section id="starter" className="mt-14 scroll-mt-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <section id="starter" className="mt-10 scroll-mt-32 lg:scroll-mt-24">
+        {tab !== "soon" && (
+        <>
+        <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-sm font-black uppercase tracking-widest text-gold/70">Starter · Chapter 1</p>
             <h2 className="text-3xl font-black text-gold sm:text-4xl">
@@ -119,8 +194,15 @@ export default function Dashboard() {
           <div className="h-full bg-gold transition-all duration-500" style={{ width: `${pct}%` }} />
         </div>
 
+        </>
+        )}
+
+        {tab === "starter" && (
+        <>
         {/* Story preview */}
-        <div className="mt-8 rounded-3xl border-2 border-navy3 bg-navy2/70 p-5 sm:p-8">
+        <div className="mt-8 grid items-start gap-8 xl:grid-cols-2">
+        <div>
+        <div className="rounded-3xl border-2 border-navy3 bg-navy2/70 p-5 sm:p-8">
           <h3 className="text-xl font-black text-gold">📖 Read the scene</h3>
           <p className="mt-1 text-sm font-semibold text-cream/70">
             Tap any Kannada word to hear it. Words you mark <b className="text-gold">gottu</b> lose their English
@@ -140,6 +222,9 @@ export default function Dashboard() {
                   playing === i ? "bg-gold/20 ring-2 ring-gold" : "bg-ink/50"
                 }`}
               >
+                <span className="mr-2 inline-block">
+                  <Avatar emoji={line.voice === "ajji" ? "👵" : "🧒"} active={playing === i} size="sm" />
+                </span>
                 <button
                   onClick={() => (playing === i ? stopAll() : playLines([i]))}
                   className="mr-2 rounded-full bg-gold px-3 py-0.5 text-sm font-black text-ink"
@@ -162,20 +247,32 @@ export default function Dashboard() {
 
         <TalkToAjji onGottu={(id) => setKnown((k) => (k.includes(id) ? k : [...k, id]))} />
 
+        </div>
+        <div>
         {/* Word cards */}
-        <h3 className="mt-10 text-xl font-black text-gold">🃏 Your starter words</h3>
+        <h3 className="text-xl font-black text-gold">🃏 Your starter words</h3>
         <p className="mt-1 text-sm font-semibold text-cream/70">
           Tap a card to hear it. Press the button when you really know it.
         </p>
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 2xl:grid-cols-4">
           {WORDS.map((w) => (
             <WordCard key={w.id} word={w} isKnown={known.includes(w.id)} onToggle={() => toggle(w.id)} />
           ))}
         </div>
+        </div>
+        </div>
+
+        </>
+        )}
 
         {/* Scene path */}
-        <h3 className="mt-12 text-xl font-black text-gold">🗺️ The story path</h3>
-        <ol className="mt-4 space-y-3">
+        {tab === "path" && (
+        <>
+        <h3 className="mt-8 text-xl font-black text-gold">🗺️ The story path</h3>
+        <p className="mt-1 text-sm font-semibold text-cream/70">
+          Each scene unlocks when you&apos;ve marked the previous scene&apos;s words as gottu.
+        </p>
+        <ol className="mt-4 grid gap-3 xl:grid-cols-2">
           {SCENES.map((s, i) => {
             const done = s.words.every((id) => known.includes(id));
             const open = i === 0 || SCENES[i - 1].words.every((id) => known.includes(id));
@@ -210,6 +307,8 @@ export default function Dashboard() {
             );
           })}
         </ol>
+        </>
+        )}
       </section>
 
       {openScene !== null && (
@@ -223,7 +322,8 @@ export default function Dashboard() {
       )}
 
       {/* Coming up */}
-      <section className="mt-14">
+      {tab === "soon" && (
+      <section className="mt-8">
         <h3 className="text-xl font-black text-gold">Coming up</h3>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           {LATER_CHAPTERS.map((c) => (
@@ -234,6 +334,7 @@ export default function Dashboard() {
           ))}
         </div>
       </section>
+      )}
     </div>
   );
 }
@@ -288,7 +389,15 @@ function TalkToAjji({ onGottu }: { onGottu: (id: string) => void }) {
 
   return (
     <div className="mt-8 rounded-3xl border-2 border-gold bg-gradient-to-br from-navy2 to-ink p-5 sm:p-8">
-      <h3 className="text-xl font-black text-gold">🎤 Talk to Ajji</h3>
+      <div className="flex items-center gap-3">
+        <Avatar emoji="👵" size="lg" active={state !== "idle"} />
+        <div>
+          <h3 className="text-xl font-black text-gold">🎤 Talk to Ajji</h3>
+          <p className="text-xs font-extrabold uppercase tracking-wider text-cream/60">
+            {state === "listening" ? "Ajji is listening…" : state === "thinking" ? "Ajji is thinking…" : "Ajji is ready"}
+          </p>
+        </div>
+      </div>
       <p className="mt-2 text-lg font-bold text-cream">{c.prompt}</p>
       <p className="mt-1 text-sm font-semibold text-cream/70">
         Hint: <span className="font-kn font-black text-gold">{target.kn}</span> ({target.rom})
