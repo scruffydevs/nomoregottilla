@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #06173d;          /* deepest blue */
+  --navy: #0a2a6b;         /* deep blue background */
+  --navy-2: #0f3a8c;       /* raised cards */
+  --navy-3: #1749b0;       /* borders / hover */
+  --gold: #ffcc00;         /* Karnataka flag yellow */
+  --red: #e4202c;          /* Karnataka flag red, used sparingly */
+  --cream: #fff6d6;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-navy: var(--navy);
+  --color-navy2: var(--navy-2);
+  --color-navy3: var(--navy-3);
+  --color-gold: var(--gold);
+  --color-flagred: var(--red);
+  --color-cream: var(--cream);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(255, 204, 0, 0.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(23, 73, 176, 0.55), transparent 60%),
+    var(--navy);
+  background-attachment: fixed;
+  color: var(--cream);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.font-kn {
+  font-family: var(--font-kannada), var(--font-inter), sans-serif;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.pop { animation: pop 0.25s ease-out both; }
+
+@keyframes flip {
+  0% { transform: rotateX(90deg); opacity: 0; }
+  100% { transform: rotateX(0); opacity: 1; }
+}
+.flip { animation: flip 0.35s ease-out both; }
