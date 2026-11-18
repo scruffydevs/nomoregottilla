@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SCENES, WORD_BY_ID, type Beat } from "@/data/starter";
+import { SCENES, WORD_BY_ID, type Beat, type Scene } from "@/data/starter";
 import { speak, stopSpeaking } from "@/lib/voice";
 import { InlineWord } from "./InlineWord";
 import { Avatar } from "./Avatar";
@@ -16,14 +16,16 @@ export default function ScenePlayer({
   onToggle,
   onClose,
   onOpenScene,
+  custom,
 }: {
   index: number;
   known: string[];
   onToggle: (id: string) => void;
   onClose: () => void;
   onOpenScene: (i: number) => void;
+  custom?: Scene; // an AI-written story to play instead of a built-in scene
 }) {
-  const scene = SCENES[index];
+  const scene = custom ?? SCENES[index];
   const [step, setStep] = useState(0); // step === beats.length means the end card
   const [talking, setTalking] = useState(false);
   const end = step >= scene.beats.length;
@@ -68,7 +70,7 @@ export default function ScenePlayer({
   }, [onClose]);
 
   const shown = scene.beats.slice(0, Math.min(step + 1, scene.beats.length));
-  const last = index === SCENES.length - 1;
+  const last = !!custom || index === SCENES.length - 1;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-gradient-to-b from-ink via-navy to-ink">
@@ -79,7 +81,7 @@ export default function ScenePlayer({
             ← Dashboard
           </button>
           <p className="text-sm font-black uppercase tracking-widest text-gold/70">
-            Scene {scene.n} of {SCENES.length}
+            {custom ? (scene.tag ?? "AI story") : `Scene ${scene.n} of ${SCENES.length}`}
           </p>
         </div>
 
@@ -122,6 +124,28 @@ export default function ScenePlayer({
                 </div>
                 {b.kind === "narration" ? (
                   <p className="mt-3 text-lg font-semibold leading-8 text-cream sm:text-xl sm:leading-9">{b.text}</p>
+                ) : b.kind === "ai" ? (
+                  <div className="mt-3">
+                    <p className="font-kn text-2xl font-black text-gold sm:text-3xl">{b.say}</p>
+                    <p className="mt-1 text-base font-extrabold italic text-cream/90">{b.rom}</p>
+                    <p className="mt-1 text-lg font-semibold text-cream/75">{b.en}</p>
+                    {b.vocab.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {b.vocab.map((v, j) => (
+                          <button
+                            key={j}
+                            onClick={() => speak(v.kn, "ajji")}
+                            className="rounded-lg border-b-4 border-gold bg-gold/15 px-2.5 py-0.5 text-left text-gold hover:bg-gold/25"
+                            title="Tap to hear"
+                          >
+                            <span className="font-kn block font-black">{v.kn}</span>
+                            <span className="block text-xs font-extrabold italic text-cream/90">{v.rom}</span>
+                            <span className="block text-xs font-bold text-cream/70">({v.en})</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <p className="mt-3 text-xl font-bold leading-[2.6rem] text-cream sm:text-2xl">
                     {b.segs.map((s, j) =>
@@ -136,7 +160,26 @@ export default function ScenePlayer({
           {end && (
             <div className="pop rounded-3xl border-2 border-gold bg-gold/15 p-6 text-center">
               <p className="text-2xl font-black text-gold">Scene complete! 🎉</p>
-              <p className="mt-1 text-sm font-semibold text-cream/80">Which of these words are gottu now? Tap to mark them.</p>
+              {!!scene.vocab?.length && (
+                <>
+                  <p className="mt-1 text-sm font-semibold text-cream/80">New words from this story. Tap to hear them.</p>
+                  <div className="mt-4 flex flex-wrap justify-center gap-3">
+                    {scene.vocab.map((v, j) => (
+                      <button
+                        key={j}
+                        onClick={() => speak(v.kn, "ajji")}
+                        className="rounded-2xl border-2 border-gold/50 px-4 py-2 text-left text-gold hover:bg-gold/10"
+                      >
+                        <span className="font-kn block text-xl font-black">{v.kn}</span>
+                        <span className="block text-xs font-extrabold">{v.rom} · {v.en}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {scene.words.length > 0 && (
+                <p className="mt-1 text-sm font-semibold text-cream/80">Which of these words are gottu now? Tap to mark them.</p>
+              )}
               <div className="mt-4 flex flex-wrap justify-center gap-3">
                 {scene.words.map((id) => {
                   const w = WORD_BY_ID[id];

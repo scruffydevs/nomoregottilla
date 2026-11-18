@@ -60,9 +60,13 @@ export const DIALOGUE: { speaker: string; voice: Voice; say: string; segs: Seg[]
 
 // A scene is a mix of narrator beats (English, sets the scene) and a few dialogue beats
 // (spoken Kannada, English-woven on screen). Review all Kannada with a native speaker.
+export type Vocab = { kn: string; rom: string; en: string };
+
 export type Beat =
   | { kind: "narration"; text: string }
-  | { kind: "dialogue"; speaker: string; voice: Voice; say: string; segs: Seg[] };
+  | { kind: "dialogue"; speaker: string; voice: Voice; say: string; segs: Seg[] }
+  // AI-written dialogue: a full Kannada line with its own romanization, translation and new words.
+  | { kind: "ai"; speaker: string; voice: Voice; say: string; rom: string; en: string; vocab: Vocab[] };
 
 const N = (text: string): Beat => ({ kind: "narration", text });
 const AJJI = (say: string, segs: Seg[]): Beat => ({ kind: "dialogue", speaker: "Ajji", voice: "ajji", say, segs });
@@ -74,7 +78,16 @@ const YOU = (say: string, segs: Seg[]): Beat => ({
   segs,
 });
 
-export type Scene = { n: number; title: string; blurb: string; art: string; words: string[]; beats: Beat[] };
+export type Scene = {
+  n: number;
+  title: string;
+  blurb: string;
+  art: string;
+  words: string[];
+  beats: Beat[];
+  vocab?: Vocab[]; // AI stories list their new words here instead of in the word bank
+  tag?: string; // e.g. "AI story · Beginner"
+};
 
 export const SCENES: Scene[] = [
   {

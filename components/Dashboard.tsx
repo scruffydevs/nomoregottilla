@@ -5,22 +5,28 @@ import { LogoMark, Wordmark } from "./Logo";
 import { InlineWord } from "./InlineWord";
 import { Avatar } from "./Avatar";
 import ScenePlayer from "./ScenePlayer";
-import ChatWithAjji from "./ChatWithAjji";
+import AIHub from "./AIHub";
+import Diary from "./Diary";
 import { speak, startRecording, stopSpeaking, transcribe } from "@/lib/voice";
-import { DIALOGUE, LATER_CHAPTERS, SCENES, WORDS, WORD_BY_ID, type Word } from "@/data/starter";
+import { DIALOGUE, LATER_CHAPTERS, SCENES, WORDS, WORD_BY_ID, type Scene, type Word } from "@/data/starter";
 
 const KEY = "nomoregottilla:gottu";
 
-type Tab = "starter" | "path" | "chat" | "soon";
+const DIARY_KEY = "nomoregottilla:diary";
+
+type Tab = "starter" | "path" | "chat" | "diary" | "soon";
 
 export default function Dashboard() {
   const [known, setKnown] = useState<string[]>([]);
+  const [learnedAt, setLearnedAt] = useState<Record<string, number>>({}); // word id -> when it became gottu
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(KEY);
       if (raw) setKnown(JSON.parse(raw));
+      const diary = localStorage.getItem(DIARY_KEY);
+      if (diary) setLearnedAt(JSON.parse(diary));
     } catch {}
     setReady(true);
   }, []);
@@ -32,8 +38,27 @@ export default function Dashboard() {
     } catch {}
   }, [known, ready]);
 
+  // Keep the diary in step with the word list: stamp new words, drop ones that were un-marked.
+  useEffect(() => {
+    if (!ready) return;
+    setLearnedAt((prev) => {
+      const next: Record<string, number> = {};
+      for (const id of known) next[id] = prev[id] ?? Date.now();
+      const same = Object.keys(next).length === Object.keys(prev).length && Object.keys(next).every((id) => prev[id] === next[id]);
+      return same ? prev : next;
+    });
+  }, [known, ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      localStorage.setItem(DIARY_KEY, JSON.stringify(learnedAt));
+    } catch {}
+  }, [learnedAt, ready]);
+
   const [tab, setTab] = useState<Tab>("starter");
   const [openScene, setOpenScene] = useState<number | null>(null);
+  const [customScene, setCustomScene] = useState<Scene | null>(null);
   const [playing, setPlaying] = useState<number | null>(null);
   const cancelled = useRef(false);
 
@@ -66,7 +91,8 @@ export default function Dashboard() {
   const tabs: { id: Tab; label: string; badge?: string }[] = [
     { id: "starter", label: "📖 Starter", badge: `${gottu}/${WORDS.length}` },
     { id: "path", label: "🗺️ Story path", badge: `${scenesDone}/${SCENES.length}` },
-    { id: "chat", label: "💬 Chat with Ajji", badge: "AI" },
+    { id: "chat", label: "✨ AI Ajji", badge: "AI" },
+    { id: "diary", label: "📔 Your diary", badge: String(gottu) },
     { id: "soon", label: "🔒 Coming up" },
   ];
 
@@ -121,6 +147,8 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {tab === "starter" && (
+      <>
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl border-2 border-gold/30 bg-gradient-to-br from-navy2 to-ink p-6 sm:p-10">
         <div className="grid items-center gap-8 lg:grid-cols-[1.5fr_1fr]">
@@ -175,10 +203,13 @@ export default function Dashboard() {
         <Stat label="Chapter" value="1 / 4" />
         <Stat label="Progress" value={`${pct}%`} />
       </section>
+      </>
+      )}
 
       {/* Starter */}
       <section id="starter" className="mt-10 scroll-mt-32 lg:scroll-mt-24">
-        {tab === "chat" && <ChatWithAjji known={known} />}
+        {tab === "chat" && <AIHub known={known} onPlay={setCustomScene} />}
+        {tab === "diary" && <Diary learnedAt={learnedAt} />}
 
         {(tab === "starter" || tab === "path") && (
         <>
@@ -314,6 +345,17 @@ export default function Dashboard() {
         </>
         )}
       </section>
+
+      {customScene && (
+        <ScenePlayer
+          index={0}
+          custom={customScene}
+          known={known}
+          onToggle={toggle}
+          onClose={() => setCustomScene(null)}
+          onOpenScene={() => setCustomScene(null)}
+        />
+      )}
 
       {openScene !== null && (
         <ScenePlayer
