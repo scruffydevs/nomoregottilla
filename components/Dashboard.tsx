@@ -5,12 +5,13 @@ import { LogoMark, Wordmark } from "./Logo";
 import { InlineWord } from "./InlineWord";
 import { Avatar } from "./Avatar";
 import ScenePlayer from "./ScenePlayer";
+import ChatWithAjji from "./ChatWithAjji";
 import { speak, startRecording, stopSpeaking, transcribe } from "@/lib/voice";
 import { DIALOGUE, LATER_CHAPTERS, SCENES, WORDS, WORD_BY_ID, type Word } from "@/data/starter";
 
 const KEY = "nomoregottilla:gottu";
 
-type Tab = "starter" | "path" | "soon";
+type Tab = "starter" | "path" | "chat" | "soon";
 
 export default function Dashboard() {
   const [known, setKnown] = useState<string[]>([]);
@@ -65,6 +66,7 @@ export default function Dashboard() {
   const tabs: { id: Tab; label: string; badge?: string }[] = [
     { id: "starter", label: "📖 Starter", badge: `${gottu}/${WORDS.length}` },
     { id: "path", label: "🗺️ Story path", badge: `${scenesDone}/${SCENES.length}` },
+    { id: "chat", label: "💬 Chat with Ajji", badge: "AI" },
     { id: "soon", label: "🔒 Coming up" },
   ];
 
@@ -176,7 +178,9 @@ export default function Dashboard() {
 
       {/* Starter */}
       <section id="starter" className="mt-10 scroll-mt-32 lg:scroll-mt-24">
-        {tab !== "soon" && (
+        {tab === "chat" && <ChatWithAjji known={known} />}
+
+        {(tab === "starter" || tab === "path") && (
         <>
         <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
           <div>
