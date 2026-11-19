@@ -16,8 +16,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Recording too long" }, { status: 413 });
   }
 
+  // Browsers label recordings like "audio/webm;codecs=opus"; Sarvam only accepts the bare type ("audio/webm").
+  const bareType = (file.type || "audio/webm").split(";")[0].trim() || "audio/webm";
+  const ext = bareType.includes("ogg") ? "ogg" : bareType.includes("wav") ? "wav" : bareType.includes("mp4") ? "m4a" : "webm";
+  const clean = new Blob([await file.arrayBuffer()], { type: bareType });
+
   const form = new FormData();
-  form.append("file", file, "speech.webm");
+  form.append("file", clean, `speech.${ext}`);
   form.append("model", process.env.SARVAM_STT_MODEL ?? "saaras:v4");
   form.append("mode", "transcribe");
   form.append("language_code", "kn-IN");

@@ -85,7 +85,7 @@ export default function ChatWithAjji({ known }: { known: string[] }) {
         const heard = await transcribe(await rec.done);
         if (heard) await send(heard);
       } catch {
-        setMsgs((m) => [...m, { role: "error", text: "Couldn't hear that. Check the Sarvam key and try again." }]);
+        setMsgs((m) => [...m, { role: "error", text: "Ajji couldn't hear that. Try once more, speaking a little closer to the microphone." }]);
       }
       return;
     }

@@ -82,7 +82,7 @@ export default function StoryStudio({ known, onPlay }: { known: string[]; onPlay
   const chosen = LEVELS.find((l) => l.id === level)!;
 
   return (
-    <div className="mx-auto mt-8 grid max-w-6xl gap-8 xl:grid-cols-[1fr_340px]">
+    <div className="mt-6 grid items-start gap-8 xl:grid-cols-[1fr_340px]">
       <div className="rounded-3xl border-2 border-gold bg-gradient-to-br from-navy2 to-ink p-5 sm:p-8">
         <h2 className="text-2xl font-black text-gold">📚 Story Studio</h2>
         <p className="mt-1 font-semibold text-cream/80">

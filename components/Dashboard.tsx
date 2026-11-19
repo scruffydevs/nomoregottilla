@@ -5,16 +5,17 @@ import { LogoMark, Wordmark } from "./Logo";
 import { InlineWord } from "./InlineWord";
 import { Avatar } from "./Avatar";
 import ScenePlayer from "./ScenePlayer";
-import AIHub from "./AIHub";
+import AjjiHub from "./AjjiHub";
+import StoryStudio from "./StoryStudio";
 import Diary from "./Diary";
 import { speak, startRecording, stopSpeaking, transcribe } from "@/lib/voice";
-import { DIALOGUE, LATER_CHAPTERS, SCENES, WORDS, WORD_BY_ID, type Scene, type Word } from "@/data/starter";
+import { DIALOGUE, SCENES, WORDS, WORD_BY_ID, type Scene, type Word } from "@/data/starter";
 
 const KEY = "nomoregottilla:gottu";
 
 const DIARY_KEY = "nomoregottilla:diary";
 
-type Tab = "starter" | "path" | "chat" | "diary" | "soon";
+type Tab = "starter" | "path" | "chat" | "diary";
 
 export default function Dashboard() {
   const [known, setKnown] = useState<string[]>([]);
@@ -91,9 +92,8 @@ export default function Dashboard() {
   const tabs: { id: Tab; label: string; badge?: string }[] = [
     { id: "starter", label: "📖 Starter", badge: `${gottu}/${WORDS.length}` },
     { id: "path", label: "🗺️ Story path", badge: `${scenesDone}/${SCENES.length}` },
-    { id: "chat", label: "✨ AI Ajji", badge: "AI" },
+    { id: "chat", label: "🗣️ Speak with Ajji", badge: "AI" },
     { id: "diary", label: "📔 Your diary", badge: String(gottu) },
-    { id: "soon", label: "🔒 Coming up" },
   ];
 
   return (
@@ -208,7 +208,7 @@ export default function Dashboard() {
 
       {/* Starter */}
       <section id="starter" className="mt-10 scroll-mt-32 lg:scroll-mt-24">
-        {tab === "chat" && <AIHub known={known} onPlay={setCustomScene} />}
+        {tab === "chat" && <AjjiHub known={known} />}
         {tab === "diary" && <Diary learnedAt={learnedAt} />}
 
         {(tab === "starter" || tab === "path") && (
@@ -342,6 +342,11 @@ export default function Dashboard() {
             );
           })}
         </ol>
+
+        {/* Story Studio: AI stories at the learner's level */}
+        <div className="mt-14 border-t-2 border-gold/20 pt-2">
+          <StoryStudio known={known} onPlay={setCustomScene} />
+        </div>
         </>
         )}
       </section>
@@ -365,21 +370,6 @@ export default function Dashboard() {
           onClose={() => setOpenScene(null)}
           onOpenScene={(i) => setOpenScene(i)}
         />
-      )}
-
-      {/* Coming up */}
-      {tab === "soon" && (
-      <section className="mt-8">
-        <h3 className="text-xl font-black text-gold">Coming up</h3>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          {LATER_CHAPTERS.map((c) => (
-            <div key={c.name} className="rounded-2xl border-2 border-dashed border-navy3 bg-ink/30 p-5 opacity-80">
-              <p className="font-kn text-3xl font-black text-gold">{c.kn}</p>
-              <p className="mt-1 font-extrabold text-cream/80">🔒 {c.name}</p>
-            </div>
-          ))}
-        </div>
-      </section>
       )}
     </div>
   );
@@ -427,7 +417,7 @@ function TalkToAjji({ onGottu }: { onGottu: (id: string) => void }) {
         speak("ಸರಿ ಸರಿ!");
       }
     } catch {
-      setError("Ajji couldn't hear that. Check that SARVAM_API_KEY is set in .env.local, then try again.");
+      setError("Ajji couldn't hear that. Try once more, speaking a little closer to the microphone.");
     }
     setRec(null);
     setState("idle");

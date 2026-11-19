@@ -14,7 +14,7 @@ function browserFallback(text: string, voice: Voice) {
   } catch {}
 }
 
-export type Voice = "ajji" | "grandson" | "narrator";
+export type Voice = "ajji" | "ajjislow" | "grandson" | "narrator";
 
 /** Stop whatever is playing. */
 export function stopSpeaking() {
@@ -84,9 +84,74 @@ export async function startRecording() {
   return { stop: () => rec.stop(), done };
 }
 
-export async function transcribe(audio: Blob): Promise<string> {
+async function decode(blob: Blob) {
+  const ctx = new AudioContext();
+  try {
+    return await ctx.decodeAudioData(await blob.arrayBuffer());
+  } finally {
+    void ctx.close();
+  }
+}
+
+/** How long and how loud a recording is (peak is 0 to 1), so we can tell silence from a missed word. */
+export async function analyzeAudio(blob: Blob): Promise<{ seconds: number; peak: number } | null> {
+  try {
+    const buf = await decode(blob);
+    const ch = buf.getChannelData(0);
+    let peak = 0;
+    for (let i = 0; i < ch.length; i++) peak = Math.max(peak, Math.abs(ch[i]));
+    return { seconds: buf.duration, peak };
+  } catch {
+    return null;
+  }
+}
+
+/** Convert a recording to 16 kHz mono 16-bit WAV (Sarvam's preferred input) and lift quiet audio. */
+async function toWav16k(blob: Blob): Promise<Blob> {
+  const buf = await decode(blob);
+  const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(buf.duration * 16000)), 16000);
+  const src = off.createBufferSource();
+  src.buffer = buf;
+  src.connect(off.destination);
+  src.start();
+  const pcm = (await off.startRendering()).getChannelData(0);
+
+  let peak = 0;
+  for (let i = 0; i < pcm.length; i++) peak = Math.max(peak, Math.abs(pcm[i]));
+  const gain = peak > 0.005 && peak < 0.5 ? Math.min(0.8 / peak, 30) : 1; // quiet mic: bring it up
+
+  const wav = new ArrayBuffer(44 + pcm.length * 2);
+  const v = new DataView(wav);
+  const text = (o: number, s: string) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  text(0, "RIFF");
+  v.setUint32(4, 36 + pcm.length * 2, true);
+  text(8, "WAVE");
+  text(12, "fmt ");
+  v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); // PCM
+  v.setUint16(22, 1, true); // mono
+  v.setUint32(24, 16000, true);
+  v.setUint32(28, 32000, true);
+  v.setUint16(32, 2, true);
+  v.setUint16(34, 16, true);
+  text(36, "data");
+  v.setUint32(40, pcm.length * 2, true);
+  for (let i = 0; i < pcm.length; i++) {
+    const s = Math.max(-1, Math.min(1, pcm[i] * gain));
+    v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return new Blob([wav], { type: "audio/wav" });
+}
+
+export async function transcribe(rawAudio: Blob): Promise<string> {
+  let audio = rawAudio;
+  try {
+    audio = await toWav16k(rawAudio);
+  } catch {
+    /* if the browser can't decode it, send the original recording */
+  }
   const form = new FormData();
-  form.append("file", audio, "speech.webm");
+  form.append("file", audio, audio.type === "audio/wav" ? "speech.wav" : "speech.webm");
   const res = await fetch("/api/stt", { method: "POST", body: form });
   if (!res.ok) throw new Error(`stt ${res.status}`);
   const data = (await res.json()) as { transcript: string };

@@ -10,6 +10,13 @@ const VOICES = {
     language: "kn-IN",
     model: KN_MODEL,
   },
+  // Ajji saying a word slowly, for pronunciation practice.
+  ajjislow: {
+    speaker: process.env.SARVAM_AJJI_SPEAKER ?? "chaitra_kn_narration",
+    pace: 0.6,
+    language: "kn-IN",
+    model: KN_MODEL,
+  },
   grandson: {
     speaker: process.env.SARVAM_GRANDSON_SPEAKER ?? "chetan_kn_conversation",
     pace: Number(process.env.SARVAM_GRANDSON_PACE ?? 1.0),
@@ -37,7 +44,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     text = body.text;
-    if (body.voice === "grandson" || body.voice === "narrator") voice = body.voice;
+    if (body.voice === "grandson" || body.voice === "narrator" || body.voice === "ajjislow") voice = body.voice;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }

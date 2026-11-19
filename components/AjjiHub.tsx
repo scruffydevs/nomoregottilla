@@ -2,18 +2,17 @@
 
 import { useState } from "react";
 import ChatWithAjji from "./ChatWithAjji";
-import StoryStudio from "./StoryStudio";
-import type { Scene } from "@/data/starter";
+import PronunciationCoach from "./PronunciationCoach";
 
-/** The AI tab: personalized stories and free chat with Ajji. */
-export default function AIHub({ known, onPlay }: { known: string[]; onPlay: (s: Scene) => void }) {
-  const [mode, setMode] = useState<"stories" | "chat">("stories");
+/** One place to talk to Ajji: drill pronunciation with her, or just chat. */
+export default function AjjiHub({ known }: { known: string[] }) {
+  const [mode, setMode] = useState<"coach" | "chat">("coach");
   return (
     <div>
-      <div className="mx-auto mt-8 flex max-w-6xl gap-2">
+      <div className="mt-8 flex flex-wrap gap-2">
         {(
           [
-            ["stories", "📚 Story Studio"],
+            ["coach", "🎙️ Pronunciation coach"],
             ["chat", "💬 Chat with Ajji"],
           ] as const
         ).map(([id, label]) => (
@@ -28,7 +27,7 @@ export default function AIHub({ known, onPlay }: { known: string[]; onPlay: (s: 
           </button>
         ))}
       </div>
-      {mode === "stories" ? <StoryStudio known={known} onPlay={onPlay} /> : <ChatWithAjji known={known} />}
+      {mode === "coach" ? <PronunciationCoach /> : <ChatWithAjji known={known} />}
     </div>
   );
 }

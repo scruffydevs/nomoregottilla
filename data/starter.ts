@@ -161,9 +161,3 @@ export const SCENES: Scene[] = [
     ],
   },
 ];
-
-export const LATER_CHAPTERS = [
-  { kn: "ಸಂತೆ", name: "The market" },
-  { kn: "ಹಬ್ಬ", name: "Festival day" },
-  { kn: "ಕಥೆ", name: "Ajji's folk tale" },
-];
