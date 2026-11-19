@@ -1,0 +1,11 @@
+{
+  "items": 31,
+  "starter_words": 12,
+  "sound_pair_words": 8,
+  "dialogue_lines": 11,
+  "audio_clips": 51,
+  "total_audio_seconds": 34.5,
+  "asr_match": 28,
+  "asr_mismatch": 3,
+  "asr_error": 0
+}
